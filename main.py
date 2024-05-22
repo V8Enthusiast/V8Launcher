@@ -1,3 +1,5 @@
+import os
+import shutil
 import sys
 import PyInstaller.__main__
 from git import Repo
@@ -173,18 +175,29 @@ class MyMainWindow(QMainWindow):
         checked_checkboxes = [checkbox.text() for checkbox in self.checkbox_objects if checkbox.isChecked()]
         for repo_name in checked_checkboxes:
             try:
-                repo_url = f'https://github.com/{self.username}/{repo_name}.git'
-
-                # Local path where you want to clone the repository
                 local_path = f'{repo_name}'
+
+                delete_folder(local_path)
+
+                repo_url = f'https://github.com/{self.username}/{repo_name}.git'
 
                 # Clone the repository
                 Repo.clone_from(repo_url, local_path)
 
-                opts = [f'{repo_name}/main.py', '--windowed']
+                #if os.path.exists(local_path + '/img') and os.path.isdir(local_path + '/img'):
+                opts = [f'{local_path}/main.py', '--windowed']
 
                 # Build the executable using PyInstaller
                 PyInstaller.__main__.run(opts)
+
+                delete_py_files(local_path)
+                move_contents('dist/main', local_path)
+                delete_folder('build')
+                delete_folder('dist')
+                os.remove('main.spec')
+
+
+
             except Exception as e:
                 print(f"Failed: {e}")
 
@@ -192,6 +205,40 @@ class MyMainWindow(QMainWindow):
         sender = self.sender()  # Get the button that was clicked
         print(f"Removing")
 
+def delete_folder(path):
+    if os.path.exists(path):
+        try:
+            shutil.rmtree(path)
+            print(f"Folder {path} has been deleted.")
+        except Exception as e:
+            print(f"Failed to delete {path}. Reason: {e}")
+    else:
+        print(f"Folder {path} does not exist.")
+def delete_py_files(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".py"):
+                file_path = os.path.join(root, file)
+                try:
+                    os.remove(file_path)
+                    print(f"Deleted: {file_path}")
+                except Exception as e:
+                    print(f"Failed to delete: {file_path}. Reason: {e}")
+def move_contents(source, destination):
+    # Check if both folders exist
+    if os.path.exists(source) and os.path.exists(destination):
+        # Iterate over the files in the source folder and move them to the destination folder
+        for filename in os.listdir(source):
+            source_file = os.path.join(source, filename)
+            destination_file = os.path.join(destination, filename)
+            try:
+                shutil.move(source_file, destination_file)
+                print(f"Moved {source_file} to {destination_file}")
+            except Exception as e:
+                print(f"Failed to move {source_file}. Reason: {e}")
+        print("All contents moved successfully.")
+    else:
+        print("Source or destination folder does not exist.")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

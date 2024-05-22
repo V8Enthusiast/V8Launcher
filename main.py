@@ -1,5 +1,6 @@
 import sys
-
+import PyInstaller.__main__
+from git import Repo
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QCheckBox, QHBoxLayout, \
     QPushButton
@@ -90,9 +91,10 @@ class MyMainWindow(QMainWindow):
         self.setWindowTitle("V8 Launcher")
         self.setGeometry(1200, 600, 1200, 900)
         self.setStyleSheet(dark_mode_style)
+        self.username = 'V8Enthusiast'
 
         self.buttons = ["Launch", "Update", "Remove"]
-        self.checkboxes = ["Tetris", "Minesweeper", "2048", "File Commander", "Sandbox"]
+        self.checkboxes = ["Tetris", "Minesweeper", "2048", "File Explorer", "Sandbox"]
 
         tab_widget = QTabWidget()
 
@@ -114,13 +116,13 @@ class MyMainWindow(QMainWindow):
         layout2.addWidget(label_tab2)
 
         checkbox_list = QVBoxLayout()
-        checkboxes = []
+        self.checkbox_objects = []
         for name in self.checkboxes:
             checkbox = QCheckBox(name)
             checkbox.setStyleSheet("QCheckBox::indicator { width: 30px; height: 30px;}")
             checkbox.setFont(QFont("Arial", 24))  # Set a larger font size
             #checkbox.setFixedSize(350, 40)  # Set a larger size for the checkbox
-            checkboxes.append(checkbox)
+            self.checkbox_objects.append(checkbox)
             checkbox_list.addWidget(checkbox)
 
         button_layout = QHBoxLayout()
@@ -163,13 +165,34 @@ class MyMainWindow(QMainWindow):
 
     def launch_apps(self):
         sender = self.sender()  # Get the button that was clicked
-        print(f"Launching")
+        checked_checkboxes = [checkbox.text() for checkbox in self.checkbox_objects if checkbox.isChecked()]
+        print(f"Launching {checked_checkboxes}")
     def update_apps(self):
         sender = self.sender()  # Get the button that was clicked
         print(f"Updating")
+        checked_checkboxes = [checkbox.text() for checkbox in self.checkbox_objects if checkbox.isChecked()]
+        for repo_name in checked_checkboxes:
+            try:
+                repo_url = f'https://github.com/{self.username}/{repo_name}.git'
+
+                # Local path where you want to clone the repository
+                local_path = f'{repo_name}'
+
+                # Clone the repository
+                Repo.clone_from(repo_url, local_path)
+
+                opts = [f'{repo_name}/main.py', '--windowed']
+
+                # Build the executable using PyInstaller
+                PyInstaller.__main__.run(opts)
+            except Exception as e:
+                print(f"Failed: {e}")
+
     def remove_apps(self):
         sender = self.sender()  # Get the button that was clicked
         print(f"Removing")
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setFont(QFont("Arial", 14))

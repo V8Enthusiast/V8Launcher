@@ -83,8 +83,6 @@ QPushButton:hover {
 }
 """
 
-# Apply dark mode style to the main window and its components
-
 class MyMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -125,7 +123,7 @@ class MyMainWindow(QMainWindow):
             checkboxes.append(checkbox)
             checkbox_list.addWidget(checkbox)
 
-        button_layout = QHBoxLayout()  # Create a horizontal layout for the buttons
+        button_layout = QHBoxLayout()
 
         # Create a container widget to hold the checkbox list
         checkbox_container = QWidget()
@@ -134,16 +132,19 @@ class MyMainWindow(QMainWindow):
         layout2.addWidget(checkbox_container)
 
         spacer_item = QWidget()
-        spacer_item.setFixedHeight(20)  # Set the desired height for the space
+        spacer_item.setFixedHeight(20)
 
         layout2.addWidget(spacer_item)
 
-        # Create and add 3 buttons to the layout
         for name in self.buttons:
             button = QPushButton(name)
-            # Inside the loop where buttons are created
             button.setFont(QFont("Arial", 36))
-            button.clicked.connect(self.button_clicked)  # Connect the button to a function
+            if name == 'Launch':
+                button.clicked.connect(self.launch_apps)
+            elif name == 'Update':
+                button.clicked.connect(self.update_apps)
+            elif name == 'Remove':
+                button.clicked.connect(self.remove_apps)
             # button.setStyleSheet(
             #     "background-color: #c6e2ff; border: 1px solid #4d94ff; border-radius: 10px; padding: 5px;"
             #     "QPushButton:hover { background-color: #ffffff; }"
@@ -160,10 +161,15 @@ class MyMainWindow(QMainWindow):
 
         self.setCentralWidget(tab_widget)
 
-    # Define a function to handle button clicks
-    def button_clicked(self):
+    def launch_apps(self):
         sender = self.sender()  # Get the button that was clicked
-        print(f"Button {sender.text()} was clicked")
+        print(f"Launching")
+    def update_apps(self):
+        sender = self.sender()  # Get the button that was clicked
+        print(f"Updating")
+    def remove_apps(self):
+        sender = self.sender()  # Get the button that was clicked
+        print(f"Removing")
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setFont(QFont("Arial", 14))

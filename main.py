@@ -2,10 +2,11 @@ import os
 import shutil
 import sys
 import PyInstaller.__main__
+from PyQt5.QtCore import Qt
 from git import Repo
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QCheckBox, QHBoxLayout, \
-    QPushButton
+    QPushButton, QProgressBar
 
 chrome_tab_style = """
 QTabBar::tab {
@@ -158,6 +159,29 @@ class MyMainWindow(QMainWindow):
 
         layout2.addLayout(button_layout)  # Add the button layout under the checkbox list
 
+        spacer_item = QWidget()
+        spacer_item.setFixedHeight(20)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+
+        self.progress_bar.setStyleSheet("QProgressBar {"
+                                        "border: 2px solid grey;"
+                                        "border-radius: 5px;"
+                                        "text-align: center;"
+                                        "color: white;"
+                                        "background-color: #333;"
+                                        "}"
+                                        "QProgressBar::chunk {"
+                                        "background-color: #2B5DD1;"
+                                        "}")
+
+        layout2.addWidget(self.progress_bar)
+
+        self.label_status = QLabel("Ready")
+        self.label_status.setAlignment(Qt.AlignCenter)
+        layout2.addWidget(self.label_status)
+
         # Add stretch to fill the left part of the screen
         layout2.addStretch()
 
@@ -169,37 +193,80 @@ class MyMainWindow(QMainWindow):
         sender = self.sender()  # Get the button that was clicked
         checked_checkboxes = [checkbox.text() for checkbox in self.checkbox_objects if checkbox.isChecked()]
         print(f"Launching {checked_checkboxes}")
+        for project in checked_checkboxes:
+            try:
+                os.chdir(f'{project}')
+                os.startfile(f'main.exe')
+                os.chdir('..')
+                print(f"Launching {project}")
+            except Exception as e:
+                print(f"Failed: {e}")
     def update_apps(self):
         sender = self.sender()  # Get the button that was clicked
         print(f"Updating")
         checked_checkboxes = [checkbox.text() for checkbox in self.checkbox_objects if checkbox.isChecked()]
+        total_steps = 5
         for repo_name in checked_checkboxes:
+            step = 0
+            self.update_progress(step, total_steps)
             try:
+                #self.label_status.setText(f"Updating {repo_name}...")
                 local_path = f'{repo_name}'
-
+                self.label_status.setText(f"Removing old version...")
                 delete_folder(local_path)
+
+                self.update_progress(step, total_steps)
+                step += 1
+                self.label_status.setText(f"Downloading {repo_name} from GitHub...")
 
                 repo_url = f'https://github.com/{self.username}/{repo_name}.git'
 
                 # Clone the repository
                 Repo.clone_from(repo_url, local_path)
 
+                self.update_progress(step, total_steps)
+                step += 1
+                self.label_status.setText(f"Building executable...")
+
                 #if os.path.exists(local_path + '/img') and os.path.isdir(local_path + '/img'):
-                opts = [f'{local_path}/main.py', '--windowed']
+                opts = [f'{local_path}\main.py', '--windowed']
 
                 # Build the executable using PyInstaller
                 PyInstaller.__main__.run(opts)
 
+                self.update_progress(step, total_steps)
+                step += 1
+                self.label_status.setText(f"Clearing directory...")
+
                 delete_py_files(local_path)
-                move_contents('dist/main', local_path)
+
+                self.update_progress(step, total_steps)
+                step += 1
+                self.label_status.setText(f"Moving files...")
+
+                move_contents('dist\main', local_path)
+
+                self.update_progress(step, total_steps)
+                step += 1
+                self.label_status.setText(f"Removing temporary files...")
+
                 delete_folder('build')
                 delete_folder('dist')
                 os.remove('main.spec')
+
+                self.update_progress(step, total_steps)
+                self.label_status.setText(f"Ready")
 
 
 
             except Exception as e:
                 print(f"Failed: {e}")
+                self.update_progress(0, total_steps)
+                self.label_status.setText(f"Update Failed")
+
+    def update_progress(self, current_step, total_steps):
+        progress = int((current_step / total_steps) * 100)
+        self.progress_bar.setValue(progress)
 
     def remove_apps(self):
         sender = self.sender()  # Get the button that was clicked
